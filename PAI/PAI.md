@@ -217,8 +217,8 @@ $\hat{\mathbf{w}}=(\mathbf{X}^T\mathbf{X}+\lambda \mathbf{I})^{-1}\mathbf{X}^T\m
 Assume $p(\mathbf{w})=\mathcal{N}(0,\sigma_p^2\cdot \mathbf{I}))$ independent of $\mathbf{x}_{1:n}$
 conditional iid. $\Rightarrow$ $p(y_{1:n}|\mathbf{w},\mathbf{x}_{1:n})=\prod_{i=1}^n p(y_i|\mathbf{w},\mathbf{x}_i)$
 In particular: $p(y_i|\mathbf{w},\mathbf{x}_i)=\mathcal{N}(y_i;\mathbf{w}^T\mathbf{x}_i,\sigma_n^2)\Leftrightarrow y_i=\mathbf{w}^T\mathbf{x}_i+\varepsilon_i\quad \varepsilon_i\sim \mathcal{N}(0,\sigma_n^2)$
-$$\Rightarrow \argmax_\mathbf{w}p(\mathbf{w}|\mathbf{x}_{1:n},y_{1:n})=\argmin_\mathbf{w}\sum_{i=1}^n(y_i-\mathbf{w}^T\mathbf{x}_i)^2+\lambda\|\mathbf{w}\|_2^2
-\\\lambda=\frac{\sigma_n^2}{\sigma_p^2}$$
+$\Rightarrow \argmax_\mathbf{w}p(\mathbf{w}|\mathbf{x}_{1:n},y_{1:n})=\argmin_\mathbf{w}\sum_{i=1}^n(y_i-\mathbf{w}^T\mathbf{x}_i)^2+\lambda\|\mathbf{w}\|_2^2$
+$\qquad\rightarrow \lambda=\frac{\sigma_n^2}{\sigma_p^2}$
 
 **Ridge regression = MAP estimation**
 * Ridge regression can be understood as finding the **Maximum A Posteriori (MAP) parameter estimate** for a linear regression problem, assuming that
@@ -234,16 +234,17 @@ $$\Rightarrow \argmax_\mathbf{w}p(\mathbf{w}|\mathbf{x}_{1:n},y_{1:n})=\argmin_\
 **Posterior distributions in BLR**
 * Prior: $p(\mathbf{w}=\mathcal{N}(0,\mathbf{I})$
 * Likelihood: $p(y|\mathbf{x},\mathbf{w},\sigma_n)=\mathcal{N}(y;\mathbf{w}^T\mathbf{x},\sigma_n^2)$
-* Posterior: $$p(\mathbf{w}|\mathbf{X},\mathbf{y})=\mathcal{N}(\mathbf{w};\bar{\mu},\bar{\Sigma})\\
-\bar{\mu}=(\mathbf{X}^T\mathbf{X}+\sigma_n^2\mathbf{I})^{-1}\mathbf{X}^T\mathbf{y}\\
-\bar{\Sigma}=(\sigma_n^{-2}\mathbf{X}^T\mathbf{X}+\mathbf{I})^{-1}$$
+* Posterior: 
+$p(\mathbf{w}|\mathbf{X},\mathbf{y})=\mathcal{N}(\mathbf{w};\bar{\mu},\bar{\Sigma})$
+$\bar{\mu}=(\mathbf{X}^T\mathbf{X}+\sigma_n^2\mathbf{I})^{-1}\mathbf{X}^T\mathbf{y}$
+$\bar{\Sigma}=(\sigma_n^{-2}\mathbf{X}^T\mathbf{X}+\mathbf{I})^{-1}$
 * $\bar{\mu}$ is ridge regression solution!
 * Precision matrix: $\bar{\Lambda}=\bar{\Sigma}^{-1}=\sigma_n^{-2}\mathbf{X}^T\mathbf{X}+\mathbf{I}$
 
 **Making predictions in BLR**
 * For test point $\mathbf{x}^*$, define $f^*=\mathbf{w}^T\mathbf{x}^*$. Then:
-$$p(f^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)=\mathcal{N}(\bar{\mu}^T\mathbf{x}^*,{\mathbf{x}^*}^T\bar{\Sigma}\mathbf{x}^*)\\
-p(y^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)=\mathcal{N}(\bar{\mu}^T\mathbf{x}^*,{\mathbf{x}^*}^T\bar{\Sigma}\mathbf{x}^*+\sigma_n^2)$$
+$p(f^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)=\mathcal{N}(\bar{\mu}^T\mathbf{x}^*,{\mathbf{x}^*}^T\bar{\Sigma}\mathbf{x}^*)$
+$p(y^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)=\mathcal{N}(\bar{\mu}^T\mathbf{x}^*,{\mathbf{x}^*}^T\bar{\Sigma}\mathbf{x}^*+\sigma_n^2)$
 ###### :wheelchair:*proof to do*
 
 **Aleatoric vs. epistemic uncertainty**
@@ -274,11 +275,11 @@ $p(y^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)
 =\int p(y^*|\mathbf{x}^*,\mathbf{w})p(\mathbf{w}|\mathbf{x}_{1:n},\mathbf{y}_{1:n})d\mathbf{w}
 =\mathcal{N}(\bar{\mu}^T\mathbf{x}^*,{\mathbf{x}^*}^T\bar{\Sigma}\mathbf{x}^*+\sigma_n^2)$
 * Thus, ridge regression can be viewed as approximating the full posterior by **(placing all mass on) its mode**
-$$p(y^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)
-=\int p(y^*|\mathbf{x}^*,\mathbf{w})p(\mathbf{w}|\mathbf{x}_{1:n},\mathbf{y}_{1:n})d\mathbf{w}\\
-\approx \int p(y^*|\mathbf{x}^*,\mathbf{w})\delta_{\hat{\mathbf{w}}}(\mathbf{w})d\mathbf{w}\\
-=p(y^*|\mathbf{x}^*,\hat{\mathbf{w}})\\
-\hat{\mathbf{w}}=\argmax_\mathbf{w}p(\mathbf{w}|\mathbf{x}_{1:n},y_{1:n})$$
+$p(y^*|\mathbf{X},\mathbf{y},\mathbf{x}^*)
+=\int p(y^*|\mathbf{x}^*,\mathbf{w})p(\mathbf{w}|\mathbf{x}_{1:n},\mathbf{y}_{1:n})d\mathbf{w}$
+$\approx \int p(y^*|\mathbf{x}^*,\mathbf{w})\delta_{\hat{\mathbf{w}}}(\mathbf{w})d\mathbf{w}$
+$=p(y^*|\mathbf{x}^*,\hat{\mathbf{w}})$
+$\hat{\mathbf{w}}=\argmax_\mathbf{w}p(\mathbf{w}|\mathbf{x}_{1:n},y_{1:n})$
 * *Note*: $\delta_{\hat{\mathbf{w}}}(\cdot)$ is such that $\int f(\mathbf{w})\delta_{\hat{\mathbf{w}}}(\mathbf{w})d\mathbf{w}=f(\hat{\mathbf{w}})$
 
 **Choosing hyperparameters** 
@@ -337,8 +338,8 @@ where, $\theta^{(j+1)}=\{\mu^{(j+1)},\Sigma^{(j+1)}\},\quad p(\theta|y_{1:j})=p^
 * Assumptions:
 Known: $\mathbf{X}_{t+1}=\mathbf{F}\mathbf{X}_t+\varepsilon_t$, $\mathbf{Y}_t=\mathbf{H}\mathbf{X}_t+\eta_t$,$\qquad\varepsilon_{1:t},\eta_{1:t}$ independent
 implies that: $X_{t+1}\bot X_{1:t-1}|X_t$, and $Y_{t+1}\bot Y_{1:t-1},X_{1:t-1}|X_t$
-$\rightarrow P(X_{1:t},Y_{1:t})=P(X_1)P(X_2|X_1)\dots P(X_n|X_{n-1})P(Y_1|X_1)P(Y_2|X_2)\dots P(Y_n|X_n)\\
-=P(X_1)P(Y_1|X_1)\prod_{i=2}^tP(X_i|X_{i-1})P(Y_i|X_i)$
+$\rightarrow P(X_{1:t},Y_{1:t})=P(X_1)P(X_2|X_1)\dots P(X_n|X_{n-1})P(Y_1|X_1)P(Y_2|X_2)\dots P(Y_n|X_n)$
+$=P(X_1)P(Y_1|X_1)\prod_{i=2}^tP(X_i|X_{i-1})P(Y_i|X_i)$
 
 **Bayesian filtering**
 * Start with $P(X_1)=\mathcal{N}(\mu,\Sigma)$
@@ -358,8 +359,9 @@ $\rightarrow P(X_{1:t},Y_{1:t})=P(X_1)P(X_2|X_1)\dots P(X_n|X_{n-1})P(Y_1|X_1)P(
 **General Kalman update**
 * Transition model: $P(\mathbf{x}_{t+1}|\mathbf{x}_t)=\mathcal{N}(\mathbf{x}_{t+1};\mathbf{F}\mathbf{x}_t,\Sigma_x)$
 * Sensor model: $P(\mathbf{y}_t|\mathbf{x}_t)=\mathcal{N}(\mathbf{y}_t;\mathbf{H}\mathbf{x}_t,\Sigma_y)$
-* **Kalman Update**: $$\mu_{t+1}=\mathbf{F}\mu_t+\mathbf{K}_{t+1}(\mathbf{y}_{t+1}-\mathbf{H}\mathbf{F}\mu_t)\\
-\mathbf{\Sigma}_{t+1}=(\mathbf{I}-\mathbf{K}_{t+1}\mathbf{H})(\mathbf{F}\mathbf{\Sigma}_t\mathbf{F}^T+\mathbf{\Sigma_x})$$
+* **Kalman Update**: 
+$\mu_{t+1}=\mathbf{F}\mu_t+\mathbf{K}_{t+1}(\mathbf{y}_{t+1}-\mathbf{H}\mathbf{F}\mu_t)$
+$\mathbf{\Sigma}_{t+1}=(\mathbf{I}-\mathbf{K}_{t+1}\mathbf{H})(\mathbf{F}\mathbf{\Sigma}_t\mathbf{F}^T+\mathbf{\Sigma_x})$
 * **Kalman Gain**:$$\mathbf{K}_{t+1}=(\mathbf{F}\mathbf{\Sigma}_t\mathbf{F}^T+\mathbf{\Sigma_x})\mathbf{H}^T(\mathbf{H}(\mathbf{F}\mathbf{\Sigma}_t\mathbf{F}^T+\mathbf{\Sigma_x})\mathbf{H}^T+\mathbf{\Sigma}_y)^{-1}$$
 * Can compute $\mathbf{\Sigma}_t$ and $\mathbf{H}_t$ **offline**
 
@@ -440,3 +442,181 @@ e.g. poly. kernel $(1+\mathbf{x}^T\mathbf{x}')^m$
     \end{pmatrix}$
     $k$ is called **covariance (kernel)** function
     $\mu$ is called **mean** function
+* **GP Marginals**
+Typically, primarily interested in marginals, i.e.,
+$p(f(x))=\mathcal{N}(f(x);\mu(x),k(x,x))$
+$k(x_1,x_2)=Cov(f(x_1),f(x_2))=\mathbb{E}[((f(x_1)-\mu(x_1))((f(x_2)-\mu(x_2))]$
+$k(x,x)=Cov(f(x),f(x))=\mathbb{E}[((f(x)-\mu(x))^2]=Var(f(x))$
+
+**Covariance (kernel) Functions**
+* $k$ must be **symmetric**
+    * $k(x,x')=k(x',x) \text{ for all }x,x'$
+* $k$ must be **positive definite**
+    * For all $A$: $K_{AA}$ is positive definite matrix
+    * $\forall x \in \mathbb{R}^{|A|}: x^TK_{AA}x\geq 0 \Leftrightarrow \text{all eigenvalues of } K_{AA}\geq 0$
+* Kernel function $k$: assumptions about correlation!
+
+**Covariance Functions: Examples**
+* Linear kernel:$k(x,x')=x^Tx'$
+    * GP with linear kernel = Bayesian linear regression
+    * Linear kernel with features:
+    $k(x,x')=\phi(x)^T\phi(x')$
+* Squared exponential (a.k.a. RBF, Gaussian) kernel
+    * $k(x,x')=exp(-\|x-x'\|_2^2/h^2)$ , $h$ is called bandwidth
+* Exponential kernel
+    * $k(x,x')=exp(-\|x-x'\|_2/h)$
+
+**Smoothness of GP Samples**
+* Covariance function determines smoothness of sample paths*
+assuming $\mu(x)=0, \forall x$
+    * Squared exponential kernel: **analytic** (**infinitely** diff'able)
+    * Exponential kernel: continuous, but **nowhere** diff’able
+    * Matérn kernel with parameter $\nu$: $\lceil\nu\rceil$ times (m.s.) diff’able
+    $k(\mathbf{x},\mathbf{x}')=\frac{2^{1-\nu}}{\Gamma(\nu)}(\frac{\sqrt{2\nu}\|\mathbf{x}-\mathbf{x}'\|_2}{\rho})^\nu K_\nu(\frac{\sqrt{2\nu}\|\mathbf{x}-\mathbf{x}'\|_2}{\rho})$
+    Hereby $\Gamma$ is the Gamma function, $K_\nu$ the modified Bessel function of the second kind, and $\rho$ is a bandwidth parameter.
+    * Special cases: $\nu=\frac{1}{2}$ gives exponential kernel; $\nu \rightarrow \infin$ gives Gaussian kernel.
+
+**Composition Rules**
+* Suppose we have two covariance functions.
+$k_1:\mathcal{X}\times\mathcal{X} \rightarrow \mathbb{R} \quad k_2:\mathcal{X}\times\mathcal{X} \rightarrow \mathbb{R}\qquad$definedon data space $\mathcal{X}$
+* Then the following functions are valid cov. functions:
+$k(\mathbf{x},\mathbf{x}')=k_1(\mathbf{x},\mathbf{x}')+k_2(\mathbf{x},\mathbf{x}') $
+$\qquad \rightarrow f_1\sim GP(\mu_1,k_1),f_2\sim GP(\mu_2,k_2),g=f_1+f_2\sim GP(\mu_1+\mu_2,k_1+k_2)$
+$k(\mathbf{x},\mathbf{x}')=k_1(\mathbf{x},\mathbf{x}')k_2(\mathbf{x},\mathbf{x}')$
+$k(\mathbf{x},\mathbf{x}')=c\:k_1(\mathbf{x},\mathbf{x}')\quad \text{for }c>0$
+$k(\mathbf{x},\mathbf{x}')=f(k_1(\mathbf{x},\mathbf{x}'))$, where $f$ is a  polynomial with positive coefficients or the exponential function
+
+**Forms of Covariance Functions**
+* Covariance function $k:\mathbb{R}^d\times \mathbb{R}^d \rightarrow \mathbb{R}$ is called:
+    * **Stationary** if $k(x,x')=k(x-x')$
+    * **Isotropic** if $k(x,x')=k(\|x-x'\|_2)$
+    $\begin{matrix}
+    \: & Stationary?&Isotropic?\\
+    Linear& \times& \times\\
+    Gaussian& \checkmark& \checkmark\\
+    exp(-\frac{(x-x')^T\mathbf{M}(x-x')}{h^2}) & \checkmark & \times\\
+    \mathbf{M} \:pos.semi-def.&\:&\:
+    \end{matrix}$
+
+**Making Predictions with GPs**
+* Suppose $p(f)=GP(f;\mu;k)$
+and we observe $y_i)=f(\mathbf{x}_i +\varepsilon_i)\quad \varepsilon_i\sim\mathcal{N}(0,\sigma^2)\quad A=\{\mathbf{x}_1,...,\mathbf{x}_m\}$
+* Then $p(f|\mathbf{x}_1,...,\mathbf{x}_m,y_1,...,y_m)=GP(f;\mu',k)'$
+where 
+$\mu'(\mathbf{x})=\mu(\mathbf{x})+\mathbf{k}_{x,A}(\mathbf{K}_{AA}+\sigma^2\mathbf{I})^{-1}(\mathbf{y}_A-\mu_A)$
+$k'(\mathbf{x},\mathbf{x}')=k(\mathbf{x},\mathbf{x}')-\mathbf{k}_{x,A}(\mathbf{K}_{AA}+\sigma^2\mathbf{I})^{-1}\mathbf{k}_{x',A}$
+*Note*: $\mathbf{k}_{x,A}=[k(x,x_1),...k(x,x_m)]$
+* $\rightarrow$ Closed form formulas for prediction!
+* $\rightarrow$ Posterior covariance $k'$ does not depend on $\mathbf{y}_A$
+
+**Common Convention: Prior Mean 0**
+Surpose $f\sim GP(\mu,k)$
+Define $g:=g(x)=f(x)-\mu(x)\quad \forall x$
+$\Rightarrow g\sim GP(0,k)$
+$\Rightarrow f(x)=g(x)+\mu(x)$
+
+**How to sample from a GP?**
+* Forward sampling
+$P(f_1,...,f_n)=P(f_1)P(f_2|f_1)...P(f_n|f_{1:n-1})$
+where $P(f_1)\sim\mathcal{N}(\mu_1,\sigma_1^2),...,P(f_n|f_{1:n-1})\sim\mathcal{N}(\mu_{n|1:n-1},\sigma_{n|1:n-1}^2)$
+Can sample $f_1\sim P(f_1)$ ,Then $f_2\sim P(f_2|f_1)...f_n\sim P(f_n|f_{1:n-1})$
+
+**Side Note: Kalman Filters are GPs**
+* **Kalman filters** can be seen as **a special case of a GP** with a particular conditional independence structure that allows efficient / recursive Bayesian filtering
+* $\{x_1,x_2...y_1,y_2,...\}$ is a GP, $x_1\sim\mathcal{N}(0,\sigma_p^2)$
+$x_{t+1}=x_t+\varepsilon_t,\quad \varepsilon_t\sim\mathcal{N}(0,\sigma_x^2)$
+$y_t=x_t+\eta_t,\quad \eta_t\sim\mathcal{N}(0,\sigma_y^2)$
+*Note*:
+$\sigma_1^2=\sigma_p^2,\quad \sigma_2^2=\sigma_p^2+\sigma_x^2, \quad \sigma_t^2=\sigma_p^2+(t-1)\sigma_x^2$
+$\mu_{t+1}=\mathbb{E}[x_{t+1}]=\mathbb{E}[x_t+\varepsilon_t]=\mu_t+\mathbb{E}[\varepsilon_t]=\mu_t=\mu_1=0$
+$Cov(x_t,x_{t+\Delta})=\mathbb{E}[(x_t-\mu_t)(x_{t+\Delta}-\mu_{t+\Delta})]=...=Var(x_t^2)=\sigma_t^2$
+
+
+**Optimizing Kernel Parameters**
+* How should we pick the hyperparameters?
+* One answer: crossvalidation on predictive performance.
+* The Bayesian perspective provides an alternative approach: 
+**Maximize the marginal likelihood of the data**
+* $\hat{\theta}=argmax_\theta p(y|x,\theta)=argmax_\theta \int p(y,f|x,\theta)df$
+$=argmax_\theta \int p(y|f,x)p(f|\theta)df=argmax_\theta \mathcal{N}(y;0,\mathbf{K}_y(\theta))\leftarrow $zero mean by convention
+$=argmin_\theta \frac{d}{2}log2\pi+\frac{1}{2}log|\mathbf{K}_y(\theta)|+\frac{1}{2}y^T\mathbf{K}_y(\theta)y$
+*Note*: $\theta=[\theta',\sigma_n^2], \quad \mathbf{K}_y(\theta)=\mathbf{K}_x(\theta')+\sigma_n^2\mathbf{I}$
+$\mathcal{N}(y;0,\mathbf{K}_y(\theta))=\frac{1}{\sqrt{(2\pi)^d|\mathbf{K}_y(\theta)|}}exp(-\frac{1}{2}y^T\mathbf{K}_y(\theta)y)$
+
+**Model Selection for GPs**
+* Marginal likelihood of the data
+$logp(\mathbf{y}|X,\theta)=-\frac{1}{2}\mathbf{y}^T\mathbf{K}_y^{-1}\mathbf{y}-\frac{1}{2}log|\mathbf{K}_y|-\frac{n}{2}log2\pi \quad$ the last term is indep. of $\theta$
+* Can find $\hat{\theta}=argmax\:p(\mathbf{y}|X,\theta)$ by gradient descent
+$\hat{\theta}=argmin_\theta \: \frac{1}{2}\mathbf{y}^T\mathbf{K}_y^{-1}\mathbf{y}+\frac{1}{2}log|\mathbf{K}_y|=argmin_\theta \: \mathcal{L}(\theta)$
+
+**Optimizing the Likelihood**
+* Gradient of the Likelihood
+$\frac{\partial}{\partial\theta_j}log\: p(\mathbf{y}|X,\theta)=\frac{1}{2}\mathbf{tr}((\alpha\alpha^T-\mathbf{K}^{-1})\frac{\partial\mathbf{K}}{\partial\theta_j}$ , where $\alpha=\mathbf{K}^{-1}\mathbf{y}$
+* probably converge to local optima
+
+**Bayesian Model Melection**
+* $p(y|X,\theta)=\int p(y|f,X)p(f|\theta)df$
+* $\begin{matrix}
+\: & p(y|f,X) & p(f|\theta)\\
+\text{underfit(too simple)} & \text{small for most }f & \text{large}\\
+\text{overfit(too complex)} & \text{large for few }f \text{,small for most }f& \text{small}\\
+\text{just right} & \text{moderate} & \text{moderate}\\
+\end{matrix}$
+* In contrast, MAP estimation approx. $p(y|X,\theta)\approx p(y|\hat{f},\theta)$
+where $\hat{f}=argmax \: p(y|f,X)p(f|\theta)$
+* **Maximizing marginal likelihood** is an example of an **Empirical Bayes method** – estimating a prior distribution from data
+* Integrating (rather than optimizing) over the unknown function **helps guarding against overfitting**
+* Other possibilities exist:
+    * Can place **hyperprior** on parameters of the prior and obtain MAP estimate (corresponds to a regularization term)
+    * Can integrate out the hyperprior (but also has params...)
+    Instead of $\hat{\theta}=argmax_\theta \: p(y|X,\theta)$, can place hyperprior $p(\theta)$ on $\theta$
+    $\rightarrow \hat{\theta}=argmax_\theta \: p(\theta|X,y)$
+    $=argmax_\theta \: p(\theta)p(y|X,\theta)=argmin_\theta \: -logp(y|X,\theta)-logp(\theta)$
+    * Or go **fully bayesian**
+    $p(y^*|x^*,X,y)=\int p(y^*|x^*,f)p(f|X,y,\theta)p(\theta)dfd\theta$
+
+**Computational Issues**
+* Computational cost of prediction with a GP?
+$\mu'(\mathbf{x})=\mu(\mathbf{x})+\mathbf{k}_{x,A}(\mathbf{K}_{AA}+\sigma^2\mathbf{I})^{-1}(\mathbf{y}_A-\mu_A)$
+$k'(\mathbf{x},\mathbf{x}')=k(\mathbf{x},\mathbf{x}')-\mathbf{k}_{x,A}(\mathbf{K}_{AA}+\sigma^2\mathbf{I})^{-1}\mathbf{k}_{x',A}^T$
+* $\rightarrow$Exact computation requires solving linear system $(\mathbf{K}_{AA}+\sigma^2\mathbf{I})\cdot Z\quad $ in  $|A|=n\:$variables
+* $\rightarrow \: \varTheta(|A|^3)$
+* This is in contrast to Bayesian linear regression: $\varTheta(nd^2)$ (can even be maintained recursively at same cost)
+
+**Fast GP Methods**
+* Basic approaches for acceleration:
+    * Exploiting parallelism (GPU computations)
+    * Local GP methods
+    * Kernel function approximations (RFFs, QFFs,...)
+    * Inducing point methods (SoR, FITC, VFE etc.)
+
+**Fast GPs: Exploiting parallelism**
+* GP inference requires solving linear systems
+* Resulting algorithms can be implemented on multicore (GPU) hardware
+* Implemented by modern GP libraries (e.g., GPflow, GPyTorch)
+* Yields substantial speedup, but doesn’t address the cubic scaling in $n$
+
+**Fast GPs: Local Methods**
+* Covariance functions that decay with distance of points (e.g., RBF, Matern, kernels) lend themselves to local computations
+* To make a prediction at point $x$, only condition on points $x’$ where $|Cov(x,x’)|>\mathbf{\tau}$
+for RBF kernel, this is equivalent to $\|x-x'\|<\tau'$
+* Still expensive if “many” points close by
+
+**Fast GPs: Kernel Function Approximation**
+* Key idea: construct **explicit ''low-dimensional'' feature map** that approximates the true kernel function
+$k(x,x')\approx \phi(x)^T\phi(x') \qquad \phi(x) \in \mathbb{R}^m$
+* Then apply Bayesian linear regression
+$\rightarrow$Computational cost:$O(nm^2+m^3)$ instead of $O(n^3)$
+*  Different variations of this idea: Random Fourier Features, Nystrom Features,...
+
+**Shift-invariant Kernels**
+* A kernel $k(\mathbf{x},\mathbf{y})\quad \mathbf{x},\mathbf{y} \in \mathbb{R}^d$
+is called **shift-invariant** if $k(\mathbf{x},\mathbf{y})=k(\mathbf{x}-\mathbf{y})$
+* Such a kernel has a **Fourier transform**:
+$k(\mathbf{x}-\mathbf{y})=\int_{\mathbb{R}^d}p(\omega)e^{j\omega^T(\mathbf{x}-\mathbf{y})}d\omega$
+E.g. Gaussian Kernel $k(\mathbf{x},\mathbf{y})=exp(-\|\mathbf{x}-\mathbf{y}\|_2^2/2)$
+has the Fourier Transform:
+$p(\omega)=(2\pi)^{-d/2}exp(-\|\omega\|_2^2/2)$
+This is simply the standard Gaussian distribution in D dimensions!
+* Theorem [Bochner]: A shift-invariant kernel is **positive definite** if and only if $p(\omega)$ is **nonegative**
+* Can scale the data, so that  $p(\omega)$ is a **probability distr.**!
