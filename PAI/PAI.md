@@ -17,6 +17,8 @@
     - [Lecture Notes](#lecture-notes-3)
   - [Gaussian Process](#gaussian-process)
     - [Lecture Notes](#lecture-notes-4)
+  - [Approximate Inference](#approximate-inference)
+    - [Lecture Notes](#lecture-notes-5)
 
 <!-- /code_chunk_output -->
 TODO
@@ -620,3 +622,308 @@ $p(\omega)=(2\pi)^{-d/2}exp(-\|\omega\|_2^2/2)$
 This is simply the standard Gaussian distribution in D dimensions!
 * Theorem [Bochner]: A shift-invariant kernel is **positive definite** if and only if $p(\omega)$ is **nonegative**
 * Can scale the data, so that  $p(\omega)$ is a **probability distr.**!
+
+**Random Fourier Features**
+* Key idea: Interpret kernel as **expectation**
+$k(\mathbf{x}-\mathbf{y})=\int_{\mathbb{R}^d}p(\omega)e^{j\omega^T(\mathbf{x}-\mathbf{y})}d\omega=\mathbb{E}_{\omega,b}[\mathbf{z}_{\omega,b}(\mathbf{x})\: \mathbf{z}_{\omega,b}(\mathbf{y})]$
+$\approx \frac{1}{m}\sum_{i=1}^m \mathbf{z}_{\omega^i,b^i}(\mathbf{x}) \: \mathbf{z}_{\omega^i,b^i}(\mathbf{y})=\phi(\mathbf{x})^T\phi(\mathbf{y})$
+where $\omega\sim p(\omega)$, $b\sim U([0,2\pi])$ , $\mathbf{z}_{\omega,b}(\mathbf{x})=\sqrt{2}cos(\omega^T\mathbf{x}+b)$
+and $\phi(\mathbf{x})=\frac{1}{\sqrt{m}}(\mathbf{z}_{\omega^1,b^1}(\mathbf{x}),...,\mathbf{z}_{\omega^m,b^m}(\mathbf{x}))$
+*  [RR NIPS‘07]
+$\begin{matrix}
+\text{Kernel Name} & k(\Delta) & p(\omega)\\
+\text{Gaussian} & e^{-\frac{\|\Delta\|_2^2}{2}} & (2\pi)^{-\frac{D}{2}}e^{-\frac{\|\omega\|_2^2}{2}}\\
+\text{Laplacian} & e^{-\|\Delta\|_1} & \prod_d \frac{1}{\pi(1+\omega_d^2)}\\
+\text{Cauchy} & \prod_d \frac{2}{1+\Delta_d^2} & e^{-\|\Delta\|_1}\\
+\end{matrix}$
+* Performance of random features: 
+* Bayesian linear regression with explicit feature map $z$ approximates GP
+
+**Fourier Features can be wasteful**
+* Fourier features approximate the kernel function **uniformly well**:
+$Pr[\sup_{x,y\in \mathcal{M}} \: \|\mathbf{z}(\mathbf{x})'\mathbf{z}(\mathbf{y})-k(\mathbf{x},\mathbf{y})\|\geq \epsilon]\leq 2^8 (\frac{\sigma_p diam(\mathcal{M})}{\epsilon})^2exp(-\frac{D\epsilon^2}{4(d+2)})$
+* This may be ''too much to ask'' : Only need accurate representation for training (and test) points!
+
+**Inducing Point Methods**
+* ''Summarize'' data via function values of $f$ at a set $\mathbf{u}$ of $m$ inducing points
+$p(\mathbf{f}^*,\mathbf{f})=\int p(\mathbf{f}^*,\mathbf{f},\mathbf{u})d\mathbf{u}=\int p(\mathbf{f}^*,\mathbf{f}|\mathbf{u})p(\mathbf{u})d\mathbf{u}$
+* Key idea: Approximate by
+$p(\mathbf{f}^*,\mathbf{f})\approx q(\mathbf{f}^*,\mathbf{f})=\int q(\mathbf{f}^*|\mathbf{u})q(\mathbf{f}|\mathbf{u})p(\mathbf{u})d\mathbf{u}$
+* Hereby, $q(\mathbf{f}^*|\mathbf{u})$ and $q(\mathbf{f}|\mathbf{u})$ are approximations of 
+*Training* conditional $p(\mathbf{f}|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},\mathbf{K}_{\mathbf{f},\mathbf{f}}-\mathbf{Q}_{\mathbf{f},\mathbf{f}})$
+*Testing conditional* $p(\mathbf{f}^*|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f}^*,\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},\mathbf{K}_{\mathbf{f}^*,\mathbf{f}^*}-\mathbf{Q}_{\mathbf{f}^*,\mathbf{f}^*})$
+where $\mathbf{Q}_{\mathbf{a},\mathbf{b}}\equiv \mathbf{K}_{\mathbf{a},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{K}_{\mathbf{u},\mathbf{b}}$
+
+**Example: Subset of Regressors (SoR)**
+* The Subset of Regressors (SoR) approximation replaces
+$p(\mathbf{f}|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},\mathbf{K}_{\mathbf{f},\mathbf{f}}-\mathbf{Q}_{\mathbf{f},\mathbf{f}})$
+* By
+$p(\mathbf{f}|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},0)$
+* Can show: the resulting model is a degenerate GP with covariance function
+$k_{SoR}(\mathbf{x},\mathbf{x}')=k(\mathbf{x},\mathbf{u})\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}k(\mathbf{u},\mathbf{x}')$
+
+**Example: Fully Independent Training Conditional (FITC)**
+* The FITC approximation replaces
+$p(\mathbf{f}|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},\mathbf{K}_{\mathbf{f},\mathbf{f}}-\mathbf{Q}_{\mathbf{f},\mathbf{f}})$
+* By
+$q_{FITC}(\mathbf{f}|\mathbf{u})=\prod_{i=1}^n p(f_i|\mathbf{u})=\mathcal{N}(\mathbf{K}_{\mathbf{f},\mathbf{u}}\mathbf{K}_{\mathbf{u},\mathbf{u}}^{-1}\mathbf{u},diag(\mathbf{K}_{\mathbf{f},\mathbf{f}}-\mathbf{Q}_{\mathbf{f},\mathbf{f}}))$
+
+* Computational Cost
+* The computational cost for inducing point methods SoR and FITC is dominated by the cost of inverting $\mathbf{K}_{\mathbf{u},\mathbf{u}}$
+* Thus, it is cubic in the number of inducing points, but linear in the number of data points
+
+**How to Pick Inducing Points?**
+* **Subsets of training data**?
+    * Chosen randomly
+    * Chosen greedily according to some criterion (e.g., variance)
+* **Equally spaced in the domain**?
+    * Random points
+    * Deterministic grid
+* **Optimized**?
+    * Can treat $\mathbf{u}$ as hyperparameters and maximize marginal likelihood of the data
+* Need to ensure $\mathbf{u}$ is representative of the data and where predictions are made
+
+**Summary**
+* **Gaussian processes = kernelized Bayesian Linear Regression**
+* Can compute marginals / conditionals in **closed form**
+* Optimize hyperparameters via **maximizing the marginal likelihood**
+* Kalman filters are a **special case** of Gaussian processes
+
+
+## Approximate Inference
+### Lecture Notes
+**Bayesian learning more generally**
+* Prior: $p(\theta)$
+* Likelihood: $p(y_{1:n}|x_{1:n},\theta)\prod_{i=1}^n p(y_i|x_i,\theta)$
+* Posterior: $p(\theta|x_{1:n},y_{1:n})=\frac{1}{Z}p(\theta)\prod_{i=1}^n p(y_i|x_i,\theta)$
+where $Z=\int p(\theta)\prod_{i=1}^np(y_i|x_i,\theta)d\theta$
+* Predictions: $p(y^*|x^*,x_{1:n},y_{1:n})=\int p(y^*|x^*,\theta)p(\theta|x_{1:n},y_{1:n})d\theta$
+* For Bayesian linear regression and GP regression, these(high-dimensional) integrals are closed-form! :smile:
+* In general, this is not the case $\rightarrow$ need approximations
+    * Example: Bayesian logistic regression
+    $y\in \{1,-1\}$
+    $\sigma(\mathbf{w}^T\mathbf{x})=\frac{1}{1+exp(-\mathbf{w}^T\mathbf{x})}$
+    $p(y|\mathbf{x},\mathbf{w})=Ber(y;\sigma(\mathbf{w}^T\mathbf{x}))=\sigma(y \cdot \mathbf{w}^T\mathbf{x})$
+    $p(\mathbf{w})=\mathcal{N}(0,\sigma_p^2\mathbf{I})$
+    $p(y_{1:n}|x_{1:n},\mathbf{w})=\prod_{i=1}^n p(y_i|x_i,\mathbf{w})=\prod_{i=1}^n\sigma(y;\mathbf{w}^T\mathbf{x})$
+
+**Approximate Inference**
+* Will discuss general approaches for performing approximate inference in intractable distributions (i.e., partition function / normalizer hard to compute)
+$p(\theta|y)=\frac{1}{Z}p(\theta,y)$
+* Hereby, y are the observations (the data), and $\theta$ the latent variables (the parameters)
+* We’ll assume we can evaluate the joint distribution, but not the normalizer $Z$
+* Note that we often leave out the inputs $\mathbf{x}$ to keep notation simple
+$p(y|\theta)\equiv p(y|\theta,x)$
+
+**General Approaches**
+* **Variational inference** seeks to approximate the intractable distribution $p$ by a simple one $q$ that is ''as close as possible''
+$p(\theta|y)=\frac{1}{Z}p(\theta,y)\approx q(\theta|\lambda)$
+* **Markov-Chain Monte Carlo** methods seek to approximate $p$ by (approximate) samples from $p$ (constructed by simulating a Markov Chain)
+
+**Laplace Approximation**
+* Laplace approximation uses a Gaussian approximation to the posterior distribution obtained from a second-order Taylor expansion around the **posterior mode**
+* $q(\theta)=\mathcal{N}(\theta;\hat{\theta},\Lambda^{-1})$
+$\hat{\theta}=argmax_\theta p(\theta|y)$
+$\Lambda=-\nabla\nabla logp(\hat{\theta}|y)$
+* *Note*: $f(\theta)\equiv logp(\theta|y)\quad f(\theta)\approx f(\hat{\theta})+\nabla f_{\hat{\theta}}(\theta-\hat{\theta})+\frac{1}{2}(\theta-\hat{\theta})^T[\nabla\nabla f_{\hat{\theta}}](\theta-\hat{\theta})$
+any $p$ s.t. $logp(x)=c-x^T\Lambda x$ must be Gaussian
+
+**Laplace Approx. for Bayesian log. regression**
+* $p(w)=\mathcal{N}(w;0,\sigma_p^2\mathbf{I})=\frac{1}{Z'}exp(-\frac{1}{2\sigma_p^2}\|w\|_2^2);\quad p(y_{1:n}|w)=\prod_{i=1}^n \sigma(y_i;w^Tx_i)$
+$\hat{w}=argmax_w p(w|y_{1:n})=argmax_w \frac{1}{Z}p(w)p(y_{1:n}|w)$
+$=argmax_w logp(w)+logp(y_{1:n}|w)$
+$=argmax_w -logZ'-\frac{1}{2\sigma_p^2}\|w\|_2^2+\sum_{i=1}^nlog \sigma(y_i;w^Tx_i) $
+$=argmin_w \frac{1}{2\sigma_p^2}\|w\|_2^2+\sum_{i=1}^nlog (1+exp(-y_iw^Tx_i))$
+* *Note*: $\sigma(z)=\frac{1}{1+exp(-z)}\quad log\sigma(z)=-log(1+exp(-z))$
+$\lambda=\frac{1}{2\sigma_p^2}$
+
+**Finding the Mode**
+* $\hat{w}=argmax_w p(w|y_{1:n})=argmin_w \sum_{i=1}^nlog (1+exp(-y_iw^T x_i))+\lambda\|w\|_2^2$
+* This is just **standard (regularized) logistic regression**!
+* Can solve, e.g., using stochastic gradient descent (see introduction to ML)
+* Don’t need to know normalizer $Z$
+
+**Recall: Stochastic Gradient Descent**
+* Goal: minimize stochastic objectives
+$L(\theta):=\mathbb{E}_{\mathbf{x}\sim p}l(\theta;\mathbf{x})$
+* SGD:
+    * Initialize $\theta_1$
+    * For $t=1$ to $T$
+        * Draw minibatch $B=\{\mathbf{x}_1,...,\mathbf{x}_m\},\mathbf{x}_i\sim p$
+        * Update $\theta_{t+1}\leftarrow \theta_t-\eta_t\frac{1}{m}\sum_{i=1}^m\nabla_\theta l(\theta_t;\mathbf{x}_i)$
+* Many variants (Momentum, AdaGrad, ADAM,...)
+* For proper learning rate converges to (local) minimum
+* Gradient $\nabla_\theta l(\theta_t;\mathbf{x}_i)$ often obtained by automatic differentiation
+* One way to choose learning rate: $\sum_t \eta_t=\infin,\quad \sum_t \eta_t^2<\infin\qquad$E.g. $\eta_t=\frac{c}{t}$
+
+**Recall: SGD for Logistic Regression**
+* Initialize $\mathbf{w}$
+* For $t=1,2,...$
+    * Pick data point $(\mathbf{x},y)$ uniformly at random from data $D$
+    * Compute probability of misclassification with current model 
+    $\hat{P}(Y=-y|\mathbf{w},\mathbf{x})=\frac{1}{1+exp(y\mathbf{w}^T\mathbf{x})}$
+    * Take gradient step
+    $\mathbf{w}\rightarrow \mathbf{w}(1-2\lambda\eta_t)+\eta_ty\mathbf{x}\hat{P}(Y=-y|\mathbf{w},\mathbf{x})$
+
+**Finding the Covariance**
+* $\Lambda=-\nabla\nabla log p(\hat{\mathbf{w}}|\mathbf{x}_{1:n},y_{1:n})=\sum_{i=1}^n \mathbf{x}_i\mathbf{x}_i^t\pi_i(1-\pi_i)=\mathbf{X}^Tdiag([\pi_i(1-\pi_i)]_i)\mathbf{X}$
+* where $\pi_i=\sigma(\hat{\mathbf{w}}^T\mathbf{x}_i)$
+* *Note*: $\nabla\nabla log\frac{1}{Z}p(\theta,y)=\nabla(\nabla log\frac{1}{Z}+\nabla logp(\theta,y))=\nabla\nabla logp(\theta,y)$
+* Crucially, $\Lambda$ does not depend on the normalizer $Z$
+
+**Making Predictions**
+* Suppose want to predict 
+$p(p^*|x^*,x_{1:n},y_{1:n})=\int p(y^*|x^*,w)p(w|x_{1:n},y_{1:n})dw\approx \int p(y^*|x^*,w)q_\lambda(w)dw$
+$=\int p(y^*|f^*)q(f^*)df^*$
+This integral still has no closed form, but is easy to approximate(to machine precision), e.g. Gauss-Hermite quadrature $f(x)\approx \sum_i w_if(x_i)$
+Can also do sample based approx: $w^{(1)},...,w^{(m)}\sim q_\lambda,\quad p(y^*|...)=\frac{1}{m}\sum_{i=1}^mp(y^*|x^*,w^{(i)})$
+* *Note*:
+    * $f^*=w^Tx^*,\quad p(y^*|f^*)=\sigma(y^*f^*)$ 
+    * $q(f^*)\equiv \int p(f^*|w)q_\lambda(w)dw$
+    If $q_\lambda=\mathcal{N}(\hat{w},\Lambda^{-1})\rightarrow q(f^*)=\mathcal{N}(f^*;\hat{w}^Tx^*,{x^*}^T\Lambda^{-1} x^*)$
+* This one-dimensional integral can be easily approximated efficiently using numerical quadrature
+* [Side note: For other link functions (e.g., Gaussian CDF), can even be calculated analytically]
+
+**Issues with Laplace Approximation**
+* Laplace approximation first greedily seeks the mode, and then matches the curvature
+* his can lead to poor (e.g., overconfident) approximations 
+
+**Variational Inference**
+* Given unnormalized distribution
+$p(\theta|y)=\frac{1}{Z}p(\theta,y)$
+* Try to find a “simple” (tractable) distribution that approximates p well
+$q^*\in argmin_{q\in \mathcal{Q}} \: KL(q\|p)=argmin_{\lambda\in \mathbb{R}^D} \: KL(q_\lambda\|p)$
+
+**Simple Distributions**
+* Need to specify a **variational family** (of simple distributions)
+* E.g.: Gaussian distributions; Gaussians with diagonal covariance,...
+$\mathcal{Q}=\{q(\theta)=\mathcal{N}(\theta;\mu,diag([\sigma]))\}$
+$q=q_\lambda$, where $\lambda=[\mu,\sigma^2]$
+
+**KL-Divergence**
+* Given distributions $q$ and $p$, Kullback-Leibler divergence between $q$ and $p$ is
+$KL(q\|p)=\int q(\theta)log\frac{q(\theta)}{p(\theta)}d\theta=\mathbb{E}_{\theta\sim q}[log\frac{q(\theta}{p(\theta}]$
+Typically, we assume $p\&q$ have same support
+* Properties
+    * Non-negative: $KL(q\|p)\geq 0\quad \forall q,p$
+    * Zero if and only if $p\&q$ agree almost everywhere: $KL(q\|p)=0\Leftrightarrow q=p$
+    * Not generally symmetric: $KL(q\|p)\neq KL(p\|q)$
+
+**Example: KL Divergence Between Gaussians**
+* Consider two Gaussian distributions $p$ and $q$
+$p=\mathcal{N}(\mu_0,\Sigma_0), \: q=\mathcal{N}(\mu_1,\Sigma_1)$
+* Then it holds that
+$KL(p\|q)=\frac{1}{2}(tr(\Sigma_1^{-1}\Sigma_0)+(\mu_1-\mu_0)^T\Sigma_1^{-1}(\mu_1-\mu_0)-d+ln(\frac{|\Sigma_1|}{|\Sigma_0|}))$
+* If $p=\mathcal{N}([\mu_1,...,\mu_d],diag([\sigma_1^2,...,\sigma_d^2]))$ and $q=\mathcal{N}(0,I)$
+$KL(p\|q)=\frac{1}{2}\sum_{i=1}^d(\sigma_i^2+\mu_i^2-1-ln\sigma_i^2)$
+* Suppose $p=\mathcal{N}(\mu_0,I),q=\mathcal{N}(\mu_1,I)$
+$KL(p\|q)=\frac{1}{2}\|\mu_0-\mu_1\|_2^2$
+
+**Entropy**
+* Entropy of a distribution:
+$H(q)=-\int q(\theta)logq(\theta)d\theta=\mathbb{E}_{\theta\sim q}[-logq(\theta)]$
+* Entropy of a product distribution: $q(\theta_{1:d})=\prod_{i=1}^d q_i(\theta_i)$
+$H(q)=\sum_{i=1}^d H(q_i)$
+* Example: Entropy of a Gaussian
+$H(\mathcal{N}(\mu,\Sigma))=\frac{1}{2}ln|2\pi e\Sigma|$
+For $\Sigma=diag(\sigma_1^2,...,\sigma_d^2)\Rightarrow H=\frac{1}{2}ln|2\pi e| +\sum_{i=1}^d ln\sigma_i^2$
+
+**Minimizing KL Divergence**
+* $\begin{aligned}argmin_q KL(q\|p)&=argmin_q\int q(\theta)log\frac{q(\theta)}{\frac{1}{Z}p(\theta,y)}d\theta\\
+&=argmax_q \int q(\theta)[logp(\theta,y)-logZ-logq(\theta)]d\theta\\
+&=argmax_q\int q(\theta)logp(\theta,y)d\theta+H(q)\\
+&=argmax_q\mathbb{E}_{\theta\sim q(\theta)}[logp(\theta,y)]+H(q)\\
+&=argmax_q\mathbb{E}_{\theta\sim q(\theta)}[logp(y|\theta)]-KL(q\|p(\cdot))\end{aligned}$
+* *Note*:
+$p$ is posterior, $p(\cdot)$ is prior
+
+**Maximizing Lower Bound on Evidence**
+* $\begin{aligned}
+logp(y)&=log\int p(y|\theta)p(\theta)d\theta\\
+&=log\int p(y|\theta)\frac{p(\theta)}{q(\theta)}q(\theta)d\theta\\
+&=log\mathbb{E}_{\theta\sim q}[p(y|\theta)\frac{p(\theta)}{q(\theta)}]\\
+&\geq \mathbb{E}_{\theta\sim q}[log(p(y|\theta)\frac{p(\theta)}{q(\theta)})]\\
+&=\mathbb{E}_{\theta\sim q}[log(p(y|\theta)]d\theta-KL(q\|p(\cdot))\end{aligned}$
+
+**Inference as Optimization**
+* Thus,
+$\begin{aligned}argmin_q KL(q\|p(\cdot|y))&=argmax_q\mathbb{E}_{\theta\sim q(\theta)}[logp(y|\theta)]-KL(q\|p(\cdot))\\
+&=argmax_q\mathbb{E}_{\theta\sim q(\theta)}[logp(\theta,y)]+H(q)\\
+&=argmax_qL(q)
+\end{aligned}$
+* Thus, prefer distributions q that maximize the expected (**joint/conditional**) data likelihood, but are also **uncertain / close** to the prior
+* *Note*:
+$L(q)$ is called **''ELBO'' (Evidence lower bound)**
+$L(q)\leq log(p(y)\leftarrow $evidence
+
+**ELBO for Bayesian Logistic Regression**
+* $L(\lambda)=\mathbb{E}_{\theta\sim q(\cdot|\lambda)}[logp(y|\theta)]-KL(q_\lambda\|p(\cdot))$
+Suppose: $Q$ is diagonal Gaussians $\rightarrow$ $\lambda=[\mu_{1:d},\sigma_{1:d}^2]\in \mathbb{R}^{2d},\quad p(\theta)=\mathcal{N}(0,I)$
+$\rightarrow KL(q_\lambda\|p(\cdot))=\frac{1}{2}\sum_{i=1}^d(\mu_i^2+\sigma_i^2-1-ln\sigma_i^2)$
+* $\begin{aligned}\mathbb{E}_{\theta\sim q_\lambda}[log(p(y|\theta)]&=\mathbb{E}_{\theta\sim q_\lambda}[\sum_{i=1}^nlog(p(y_i|\theta,x_i)]\\
+&=\mathbb{E}_{\theta\sim q_\lambda}[-\sum_{i=1}^nlog(1+exp(-y_i\theta^Tx_i))]\end{aligned}$
+
+**Gradient of the ELBO**
+* $\begin{aligned}
+\nabla_\lambda L(\lambda)&=\nabla_\lambda [\mathbb{E}_{\theta\sim q(\cdot|\lambda)}[logp(y|\theta)]-KL(q_\lambda\|p(\cdot))]\\
+&=\nabla_\lambda [\mathbb{E}_{\theta\sim q(\cdot|\lambda)}[logp(\theta,y)]+H(q(\cdot|\lambda))]
+\end{aligned}$
+* Need to differentiate an expectation w.r.t. q
+* Unfortunately **q depends on the variational params**.
+* Key idea: Rewrite in a way that allows Monte Carlo approximation. Different approaches
+    * Score gradients (not discussed further here)
+    * Reparametrization gradients
+
+**Reparameterization Trick**
+* Suppose we have a random variable $\epsilon\sim\phi$ sampled from a base distribution, and consider $\theta=g(\epsilon,\lambda)$ for some invertible function $g$
+* Then it holds that $q(\theta|\lambda)=\phi(\epsilon)|\nabla_\epsilon g(\epsilon;\lambda|^{-1}$
+(change of variables for probability) and $\mathbb{E}_{\theta\sim q_\lambda}[f(\theta)]=\mathbb{E}_{\epsilon\sim\phi}[f(g(\epsilon ;\lambda))]$
+* Thus, after reparameterization, the expectation is w.r.t. to distribution $\phi$ that **does not depend** on $\lambda$ !
+* This allows to **obtain stochastic gradients** via
+$\nabla_\lambda \mathbb{E}_{\theta\sim q_\lambda}[f(\theta)]=\mathbb{E}_{\epsilon\sim\phi}[\nabla_\lambda f(g(\epsilon ;\lambda))]$
+
+**Example: Gaussians**
+* Suppose we use a Gaussian variational approximation
+$q(\theta|\lambda)=\mathcal{N}(\theta;\mu,\Sigma);\quad \lambda=[\mu,\Sigma]$
+* Can reparametrize $\theta=g(\epsilon,\lambda)=C\epsilon+\mu$, such that $\Sigma=CC^T$ and $\phi(\epsilon)=\mathcal{N}(\epsilon;0,I)$
+* Then it holds that $\epsilon=C^{-1}(\theta-\mu)$ and $\phi(\epsilon)=q(\theta|\lambda)|C|$
+* Can w.l.o.g. choose $C$ to be positive definite and lower-diagonal($C$ is Cholesky factor of $\Sigma$)
+
+**Reparametrizing the ELBO for Bayesian Logistic Regression**
+* $\begin{aligned}
+\nabla_\lambda L(\lambda)&=\nabla_\lambda [\mathbb{E}_{\theta\sim q(\cdot|\lambda)}[logp(y|\theta)]-KL(q_\lambda\|p(\cdot))]\\
+&=\nabla_{C,\mu}\mathbb{E}_{\epsilon\sim\mathcal{N}(0,I)}[logp(y|C\epsilon+\mu)]-\nabla_{C,\mu}KL(q_{C,\mu}\|p(\cdot))
+\end{aligned}$
+* Can compute $\nabla_{C,\mu}KL(q_{C,\mu}\|p(\cdot))$ exactly (e.g., via automatic differentiation)
+* Can obtain unbiased stochastic gradient estimate of 
+$\begin{aligned}
+&\nabla_{C,\mu}\mathbb{E}_{\epsilon\sim\mathcal{N}(0,I)}[logp(y|C\epsilon+\mu)]\\
+=&\nabla_{C,\mu}\mathbb{E}_{\epsilon\sim\mathcal{N}(0,I)}[n\cdot \frac{1}{n}\sum_{i=1}^n logp(y_i|C\epsilon+\mu,x_i)]\\
+=&\nabla_{C,\mu}n\mathbb{E}_{\epsilon\sim\mathcal{N}(0,I)}\mathbb{E}_{i\sim Unif\{1:n\}}logp(y_i|C\epsilon+\mu,x_i)\\
+\approx & \nabla_{C,\mu}n\cdot\frac{1}{m} \sum_{j=1}^m logp(y_{i_j}|C\epsilon^{(j)}+\mu,x_{i_j})
+\end{aligned}$
+* *Note*:
+    * Draw mini-batch $\epsilon^{(1)},...,\epsilon^{(m)}\sim \phi$
+    * Draw $i_1,...,i_m\sim Unif\{1,...,n\}$
+
+**Black Box Stochastic Variational Inference**
+* Maximizing the ELBO using stochastic optimization (e.g., Stochastic Gradient Ascent)
+* Can obtain unbiased gradient estimates, e.g., via **reparameterization trick**, or **score gradients**:
+$\nabla_\lambda L(\lambda)=\mathbb{E}_{\theta\sim q_\lambda}[\nabla_\lambda logq(\theta|\lambda)(logp(y,\theta)-logq(\theta|\lambda))]$
+* For diagonal $q$, only twice as expensive as MAP infer.
+* Only need to be able to differentiate the (unnormalized) joint probability density $p$ and $q$
+* Outlook: Can achieve better performance, e.g., using
+    * Natural gradients
+    * Variance reduction techniques (e.g., control variates) 
+
+**Side Note: Gaussian Process Classification**
+* All our discussions naturally generalize from Bayesian linear regression to Gaussian process classification:
+$P(f)=GP(\mu,k)\quad P(y|f,\mathbf{x})=\sigma(y\cdot f(\mathbf{x}))$
+* Often implemented using pseudo inputs, and maximizing the ELBO
+$\sum_{i=1}^n\mathbb{E}_{q(f_i)}[logp(y_i|f_i)]-KL(q(\mathbf{u})\|p(\mathbf{u}))$
+where $q(f_i):=\int p(f_i|\mathbf{u})q(\mathbf{u})d\mathbf{u}$
+
+**Variational Inference Summary**
+* Variational inference **reduces inference** (“summation/integration”) **to optimization**
+* Can use highly efficient stochastic optimization techniques to find approximations
+* Quality of approximation hard to analyze
