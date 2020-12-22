@@ -19,6 +19,8 @@
     - [Lecture Notes](#lecture-notes-4)
   - [Approximate Inference](#approximate-inference)
     - [Lecture Notes](#lecture-notes-5)
+  - [Markov Chain Monte Carlo](#markov-chain-monte-carlo)
+    - [Lecture Notes](#lecture-notes-6)
 
 <!-- /code_chunk_output -->
 TODO
@@ -927,3 +929,214 @@ where $q(f_i):=\int p(f_i|\mathbf{u})q(\mathbf{u})d\mathbf{u}$
 * Variational inference **reduces inference** (“summation/integration”) **to optimization**
 * Can use highly efficient stochastic optimization techniques to find approximations
 * Quality of approximation hard to analyze
+
+
+## Markov Chain Monte Carlo
+### Lecture Notes
+**Approximating Predictive Distributions**
+* Key challenge in Bayesian learning: Computing
+$\begin{aligned}
+p(y^*|x^*,x_{1:n},y_{1:n})&=\int p(y^*|x^*,\theta)p(\theta|x_{1:n},y_{1:n})d\theta\\
+&=\mathbb{E}_{\theta\sim p(\cdot|x_{1:n},y_{1:n})}[f(\theta)]\\
+&\approx \frac{1}{m}\sum_{i=1}^m f(\theta^{(i)})
+\end{aligned}$
+where $\theta^{(i)}\sim p(\theta|x_{1:n},y_{1:n})$
+* If we had access to samples from the posterior, could use to obtain **Monte-Carlo approximation** of predictive distribution
+
+**Sample Approximations of Expectations**
+* $x_1,...x_N,...$ independent samples from $P(X)$
+* (Strong) Law of large numbers:
+$\mathbb{E}_P[f(X)]=lim_{N\to\infin}\frac{1}{N}\sum_{i=1}^Nf(x_i)$
+* Hereby, the convergence is with probability 1
+(almost sure convergence)
+* Suggests **approximation** using **finite samples**:
+$\mathbb{E}_P[f(X)]\approx\frac{1}{N}\sum_{i=1}^Nf(x_i)$
+
+**How Many Samples Do We Need?**
+* **Hoeffding’s inequality** Suppose $f$ is bounded in $[0,C]$. Then
+$P(|\mathbb{E}_P[f(X)]-\frac{1}{N}\sum_{i=1}^Nf(x_i)|?\varepsilon)\leq 2exp(-2N\varepsilon^2/C^2)$
+* Thus, probability of error decreases exponentially in N!
+
+**Sampling From Intractable Distributions**
+* Given unnormalized distribution
+$P(x)=\frac{1}{Z}Q(x)$
+* $Q(X)$ efficient to evaluate, but normalizer $Z$ intractable
+* How can we sample from $P(X)$?
+* Ingenious idea: Can create Markov chain that is efficient to simulate and that has stationary distribution $P(X)$
+
+**Markov Chains**
+* A (stationary) Markov chain is a sequence of RVs, $X_1,...,X_N,...$ with
+    * Prior $P(X_1)
+    * Transition probabilities $P(X_{t+1}|x_t)$ independent of $t$
+    $X_{t+1}\bot X_{1:t-1}|X_t \quad \forall t$
+    $P(X_{1:N})=P((X_1)P(X_2|X_1)...P(X_N|X_{N-1})$
+
+**Ergodic Markov Chains**
+* A Markov Chain is called ergodic, if there exists a finite $t$ such that every state can be reached from every state in exactly $t$ steps
+
+**Stationary Distributions**
+* An (stationary)ergodic Markov Chain has a unique and positive stationary distribution $\pi(X)>0$, s.t. for all x
+$lim_{N\to \infin}P(X_N=x)=\pi(x)$
+* The stationary distribution is independent of $P(X_1)$
+
+**Simulating a Markov Chain**
+* Can simulate a Markov chain via forward sampling:
+$P(X_{1:N})=P((X_1)P(X_2|X_1)...P(X_N|X_{N-1})$
+* If simulated “sufficiently long”, sample $X_N$ is drawn from a distribution “very close” to stationary distribution $\pi$
+
+**Markov Chain Monte Carlo**
+* Given an unnormalized distribution $Q(x)$
+* Want to design a Markov chain with stationary distribution
+$\pi(x)=\frac{1}{Z}Q(x)$
+* Need to specify transition probabilities $P(x|x')$
+* How can we choose them to ensure correct stationary distribution?
+
+**Detailed Balance Equation**
+* A Markov Chain satisfies the detailed balance equation for unnormalized distribution Q if for all $x, x’$:
+$\frac{1}{Z}Q(x)P(x'|x)=\frac{1}{Z}Q(x')P(x|x')$
+* Suffices to show: $P(X_t=x)=\frac{1}{Z}Q(x) \Rightarrow P(X_{t+1}=x)=\frac{1}{Z}Q(x)$
+    * Assume $P(X_t=x)=\frac{1}{Z}Q(x)$
+    * Then $\begin{aligned}
+    P(X_{t+1}=x)&=\sum_{x'}P(X_{t+1}=x,X_t=x')\\
+    &=\sum_{x'}P(X_{t+1}=x|X_t=x')P(X_t=x')\\
+    &=\frac{1}{Z}\sum_{x'}P(x|x')Q(x')\\
+    &\overset{D.B.}= \frac{1}{Z}\sum_{x'}P(x'|x)Q(x)\\
+    &=\frac{1}{Z}Q(x)\sum_{x'}P(x'|x)\\
+    &=\frac{1}{Z}Q(x)
+    \end{aligned}$
+
+**Designing Markov Chains**
+* 1) Proposal distribution $R(X’|X)$
+    * Given $X_t=x$, sample “proposal” $x’\sim R(X’|X=x)$
+    * Note: Performance of algorithm will strongly depend on $R$
+* 2) Acceptance distribution:
+    * Suppose $X_t=x$
+    * With probability $\alpha=min\{1,\frac{\frac{1}{Z}Q(x')R(x|x')}{\frac{1}{Z}Q(x)R(x'|x)}\}$ set $X_{t+1}=x’$
+    * With probability $1-\alpha$, set $X_{t+1}=x$
+* Theorem [Metropolis, Hastings]: The stationary distribution is $Z^{-1}Q(x)$
+    * Proof: Markov chain satisfies detailed balance condition!
+
+**MCMC for Random Vectors**
+* Markov chain state can be a vector $\mathbf{X}=(X_1,...,X_n)$
+* Need to specify proposal distributions $R(x’|x)$ over such random vectors
+    * $x$: old state (joint configuration of all variables)
+    * $x’$: proposed state, $x’\sim R(X’|X=x)$
+* One popular example: Gibbs sampling!
+
+**Gibbs Sampling: Random Order**
+* Start with initial assignment $x$ to all variables
+* Fix observed variables $X_B$ to their observed value $X_B$
+* For $t=1$ to $\infin$ do 
+    * Pick a variable $i$ uniformly at random from $\{1,...,n\}\backslash \mathbf{B}$
+    * Set $\mathbf{v}_i=$values of all $x$ except $x_i$
+    * Update $x_i$ by sampling from $P(X_i|\mathbf{v}_i)$
+* Satisfies detailed balance equation!
+
+**Gibbs Sampling: Practical Variant**
+* Start with initial assignment $\mathbf{x}^{(0)}$ to all variables
+* Fix observed variables $\mathbf{X}_\mathbf{B}$ to their observed value $\mathbf{x}_\mathbf{B}$
+* For $t=1$ to $\infin$ do 
+    * Set $\mathbf{x}^{(t)}=\mathbf{x}^{(t-1)}$
+    * For each variable $X_i$(except those in $\mathbf{B}$)
+        * set $\mathbf{v}_i$=values of all $\mathbf{x}^{(t)}$ except $x_i$
+        * Sample ${x^{(t)}}_i$ from $P(X_i|\mathbf{v}_i)$ 
+* No detailed balance, but also has correct stationary distribution.
+
+**Computing $P(X_i|\mathbf{v}_i)$**
+* Key insight in Gibbs sampling: Sampling from $X_i$ given an assignment to **all** other variables is (typ.) efficient!
+* Generally, can compute 
+$P(X_i|\mathbf{v}_i)=\frac{1}{Z}Q(X_i|\mathbf{v}_i)=\frac{1}{Z}Q(X_{1:N})$
+where $Z=\sum_x Q(X_i=x,\mathbf{v}_i)$
+* Thus, re-sampling $X_i$ only requires evaluating unnormalized joint distr. and renormalizing!
+* Example: (Simple) Image Segmentation: see lecture notes
+
+**Ergodic Theorem (special case)**
+* Suppose $X_1,X_2,...,X_N,..$ is an ergodic Markov chain over a finite state space $D$, with stationary distribution $\pi$. Further let $f$ be a function on $D$.
+* Then it holds a.s. that
+$lim_{N\to\infin}\frac{1}{N}\sum_{i=1}^Nf(x_i)=\sum_{x\in D}\pi(x)f(x)=\mathbb{E}_{x\sim \pi} f(x)$
+* This is a strong law of large numbers for Markov chains!
+
+**Computing Expectations with MCMC**
+* Joint sample at time $t$ depends on sample at time $t-1$
+* Thus the law of large numbers (and sample complexity bounds such as Hoeffding's inequality) **do not apply**
+* Use MCMC sampler to obtain samples
+$\mathbf{X}^{(1)},...,\mathbf{X}^{(T)}$
+* To let the Markov chain ''burn in'', ignore the first $t_0$ samples, and approximate
+$\mathbb{E}[f(\mathbf{X})]\approx \frac{1}{T-t_0}\sum_{\tau=t_0+1}^T f(\mathbf{X}^{(\tau)})$
+* Establishing convergence rates generally very difficult
+
+**MCMC for Continuous RVs**
+* MCMC techniques can be generalized to continuous random variables / vectors
+* We focus on positive distributions w.l.o.g. written as
+$p(\mathbf{x})=\frac{1}{Z}exp(-f(\mathbf{x}))$
+where $f$ is called an energy function
+* Distributions $p$ s.t. $f$ is convex are called **log-concave**
+* Example: Bayesian logistic regression
+$p(\theta|x_{1:n},y_{1:n})=\frac{1}{Z}p(\theta)p(y_{1:n}\theta,x_{1:n})=\frac{1}{Z}exp(-logp(\theta)-logp(y_{1:n}\theta,x_{1:n}))$
+where $f(\theta)=\lambda\|\theta\|_2^2+\sum_{i=1}^nlog(1+exp(-y;\theta^Tx_i))+const.$
+
+**Recall: Metropolis Hastings**
+* 1) Proposal distribution $R(X’|X)\quad$ $Q(x)=exp(-f(x))$
+    * Given $X_t=x$, sample “proposal” $x’\sim R(X’|X=x)$
+* 2) Acceptance distribution:
+    * Suppose $X_t=x$
+    * With probability $\alpha=min\{1,\frac{R(x|x')}{R(x'|x)}exp(f(x)-f(x'))\}\quad$  set $X_{t+1}=x’$
+    * With probability $1-\alpha$, set $X_{t+1}=x$
+* What proposals $R$ should we use?
+
+**Proposals**
+* Open option: $R(x'|x)=\mathcal{N}(x';x;\tau I)$
+$x'=x+\varepsilon, \quad \varepsilon\sim\mathcal{N}(0,\tau I)$
+* Acceptance probability?
+    * *Note*: $\frac{\mathcal{N}(x|x',\tau I)}{\mathcal{N}(x'|x,\tau I)}=1$
+    * so that $\alpha=min\{1,exp(f(x)-f(x'))\}$
+    if $f(x')<f(x) \Leftrightarrow Q(x')>Q(x)\: \rightarrow \alpha=1$
+    if $f(x')>f(x) \rightarrow 0<\alpha<1$
+* Simple update, but “uninformed” direction
+
+**Improved Proposals**
+* Can take gradient information into account to prefer proposals into regions with higher density
+$R(x'|x)=\mathcal{N}(x';x-\tau \nabla f(x);2\tau I)$
+$x'=x-\tau \nabla f(x)+\varepsilon,\quad \varepsilon\sim\mathcal{N}(0,2\tau I)$
+* The resulting sampler is called **Metropolis adjusted Langevin Algorithm** (MALA; a.k.a. Langevin Monte Carlo, LMC)
+
+**Guarantees for MALA**
+* It is possible to show that for log-concave distributions (e.g., Bayesian log. Regression), MALA efficiently converges to the stationary distribution (mixing time is polynomial in the dimension)
+$Q(x)=\frac{1}{Z}exp(-f(x))$ is log-concave **iff** $f$ convex
+* In fact, locally the function is allowed to be non-convex
+
+**Improving Efficiency?**
+* Both the proposal and acceptance step in MALA/LMC require access to the full energy function $f$
+* For large data sets, that can be **expensive**
+* Key idea: 
+    * Use stochastic gradient estimates
+    * Use decaying step sizes and skip accept/reject step
+* $\rightarrow$ **Stochastic Gradient Langevin Dynamics (SGLD)**
+
+**Stochastic Gradient Langevin Dynamics**
+* Consider sampling from the Bayesian posterior 
+$\theta\sim \frac{1}{Z}exp(logp(\theta)+\sum_{i=1}^nlogp(y_i|x_i,\theta))$
+* SGLD produces (approximate) samples as follows:
+    * Initialize $\theta_0$
+    * For $t=0,1,2,...$ do 
+        * $\epsilon_t\sim\mathcal{N}(0,2\eta_t I)$
+        * $\theta_{t+1}=\theta_k=\eta_t(\nabla logp(\theta_t)+\frac{n}{m}\sum_{j=1}^m \nabla logp(y_{i_j}|\theta_t,x_{i_j}))+\epsilon_t$
+
+**Guarantees for SGLD**
+* **SGLD = SGD + Gaussian noise**
+* Can **guarantee convergence** to the stationary distribution (under some assumptions) as long as
+$\eta_t\in \Theta(t^{-1/3})$
+* In practice, one often uses **constant step sizes** to accelerate mixing (but needs tuning)
+* Can improve performance via **preconditioning** (cf. Adagrad etc. for optimization)
+
+**Outlook: Hamiltonian Monte Carlo (HMC)**
+* Often, performance of (S)GD can be improved by adding a **momentum term**
+* As SGLD/MALA can be seen as a sampling-based analogue of SGD, a similar analogue for (S)GD with momentum is the **Hamiltonian Monte Carlo algorithm**
+
+**Summary: MCMC**
+* **Markov Chain Monte Carlo** methods simulate a carefully designed Markov Chain to approximately sample from an intractable distribution
+* Can be used for Bayesian learning
+* For continuous distributions can make use of **(stochastic) gradient information** in the proposals
+* Guaranteed, **efficient convergence for log-concave densities** (e.g., Bayesian logistic regression)
+* In general, can guarantee convergence to the target distribution (in constrast to VI); however, for general distributions, convergence / mixing may be **slow**
+* $\rightarrow$Tradeoff between accuracy and efficiency
