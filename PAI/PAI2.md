@@ -1,22 +1,3 @@
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
-
-<!-- code_chunk_output -->
-
-- [Bayesian Deep Learning](#bayesian-deep-learning)
-  - [Lecture Notes](#lecture-notes)
-    - [Variational Inference for Bayesian neural networks](#variational-inference-for-bayesian-neural-networks)
-    - [Markov-Chain Monte Carlo for Bayesian Neural Networks](#markov-chain-monte-carlo-for-bayesian-neural-networks)
-    - [Specialized Inference Techniques for Bayesian Neural Networks](#specialized-inference-techniques-for-bayesian-neural-networks)
-- [Active Learning](#active-learning)
-  - [Lecture Notes](#lecture-notes-1)
-- [Bayesian Optimization](#bayesian-optimization)
-  - [Lecture Notes](#lecture-notes-2)
-- [Markov Decision Processes](#markov-decision-processes)
-  - [Lecture Notes](#lecture-notes-3)
-
-<!-- /code_chunk_output -->
-
 ## Bayesian Deep Learning
 ### Lecture Notes
 **Bayesian Learning**
