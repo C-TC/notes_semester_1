@@ -17,6 +17,9 @@
     - [Lecture Notes](#lecture-notes-2)
       - [Sampling & quantization](#sampling-quantization)
       - [Image Enhancement](#image-enhancement)
+  - [Feature Extraction](#feature-extraction)
+    - [Lecture Notes](#lecture-notes-3)
+  - [Principal Component Analysis](#principal-component-analysis)
 
 <!-- /code_chunk_output -->
 
@@ -951,4 +954,579 @@ It corresponds to the **cumulative intensity probability** or cumulative histogr
 * Probability density of the transformed intensities are given as
 $p(i')=p(i)\frac{di}{di'}=p(i)\frac{1}{p(i)}\frac{1}{i_{max}}=\frac{1}{i_{max}}$
 * Indeed a flat distribution!
+
+## Feature Extraction
+### Lecture Notes
+**Features and matching**
+* Feature: description of a (part of) a pattern / object in the image, e.g. shape, texture, emitted heat if infrared…
+* Mathematically: Describe the pattern with a vector of values
+$\mathbf{f}=[f_1,...,f_n]$
+* Goal : efficient matching for 
+**registration, correspondences for 3D, tracking, recognition,...**
+
+**Specific object recognition**
+* Identifying the same object in multiple scenes
+* Tracking objects in videos
+* Finding correspondences between scenes
+* Multiple applications in research and industry
+
+**Object category recognition**
+* Recognize different instances of the same object category
+* For example, identify cars in this scene
+* In addition to the challenges in specific object recognition, now intrinsic variation in the category also plays a role
+
+**Challenges**
+Variations in
+* View point
+* Illumination
+* Background
+* Occlusion
+* Intra-class variation
+
+**Considerations when selecting features**
+* Complete (describing a pattern unambiguously) or **not** 
+* Robustness of extraction 
+* Ease and speed of extraction 
+* Global vs. **local** representation
+
+**Strategy in two parts**
+1. Identifying points of interest
+2. Extract local features (vector of numbers) around the interest points
+* Many features per image
+* Representing different parts of many objects
+
+**Part I: Identifying “basic” points of interest**
+* A feature should capture something **discriminative** about a well localizable patch of a pattern
+* We start with the well localizable bit
+* Patch should be distnct with respect to its surrounding
+* Shifting the patch a bit should make a big difference in terms of the underlying pattern
+* We should be able to get the same point of interest under pose/lighting variations as much as possible.  
+
+**Outline for points of interest**
+1. Edge detection 
+  * Gradient operators
+  * Zero-crossings of Laplacians
+  * Canny edge detector
+2. Corner detection
+3. Blob detection
+
+**Edge detection**
+* Edges arise from changes in
+  * Reflectance
+  * Orientation
+  * Illumination (e.g. shadows)
+* Thus, not all edges are necessarily relevant to an object
+* Methods introduced here form only the first step, linking edges to extract for instance boundaries of an object is a harder question
+
+**Edge detection methods**
+* We investigate three approaches
+  1. Locating high intensity gradient magnitudes
+  2. Locating inflection points in the intensit profile
+  3. Signal processing view (optimal detectors) – Canny edge detector
+* We will only consider isotropic operators – similar sensitivity in all directions
+@import "/src/edgedetect.png" {height="80%" width="80%" title="edgedetect" alt="04"}
+
+**Gradient operators: principle**
+* Let us assume a continuous image $f(x,y)$
+* Locate $f(x,y)$’s steepest slopes using gradient magnitude
+$\sqrt{(\frac{\partial f}{\partial x})^2+(\frac{\partial f}{\partial y})^2}$
+* Gradient magnitude measures the slope of the steepest direction at a given point. 
+
+**Gradient magnitude**
+* Change of $f(x,y)$ in one v direction is given as
+$v=[cos\theta,sin\theta], \frac{\partial f}{\partial v}=\frac{\partial f}{\partial x}cos\theta+\frac{\partial f}{\partial y}sin\theta$
+* Differentiate with respect $\theta$ and set to 0 to find the max
+Angle of the maximum change: $\theta_{xtr}=tan^{-1}(\frac{\partial f/\partial y}{\partial f/\partial x})$
+Magnitude of the maximum change: $\sqrt{(\frac{\partial f}{\partial x})^2+(\frac{\partial f}{\partial y})^2}$
+
+**Gradient operator: implementation**
+* Gradient magnitude is a non-linear operator
+* But individual derivatives $\frac{\partial }{\partial x}$ and $\frac{\partial}{\partial y}$ are linear
+* They are actually linear and shift invariant operators
+* Discrete approximations, finite differences can be estimated via convolution
+@import "/src/gradop.png" {height="30%" width="30%" title="gradop" alt="04"}
+* Once these are computed, we can approximate the gradient magnitude and direction of maximum change using the results at each pixel. 
+* While easy to interpret and implement these operators are prone to noise. Noise will create high spurious derivatives
+* We instead want a tool that will not be prone to noise. 
+* It should smooth in one direction and take the derivative in the other direction. 
+
+**Gradient operators: Sobel**
+* Another discrete approximation
+@import "/src/sobel.png" {height="45%" width="45%" title="sobel" alt="04"}
+* These are called the **Sobel masks**.  
+* One mask primarily for compute horizontal and one for vertical pixel-wise derivatives 
+* Combine the results 
+  * Take the square root of the sum of their squares to compute the magnitude – approximates edge strength
+  * Take arctan of their proportion to obtain the direction of maximal change – approximates edge direction
+* Separable masks that are integer based – efficient and easy to implement
+@import "/src/sobel2.png" {height="45%" width="45%" title="sobel2" alt="04"}
+
+**Notice something?**
+@import "/src/sobel3.png" {height="50%" width="50%" title="sobel3" alt="04"}
+* Power spectrum of the modulation transfer function
+$(2isin2\pi u)(2cos2\pi v+2)$
+* Low pass in one direction and band pass in the other
+@import "/src/sobel4.png" {height="30%" width="30%" title="sobel4" alt="04"}
+
+**Gradient operators: example**
+@import "/src/gradop2.png" {height="50%" width="50%" title="gradop2" alt="04"}
+**Gradient operators: analysis**
+* Results are far from following the boundaries of object with a single line
+  * Gaps
+  * Several pixel thick at places
+  * Some edges are weak whereas others are salient
+* Sobel masks are the optimal 3 x 3 convolution filters with integer coefficients for step edge detection
+
+**Zero-crossings: principle**
+* Consider edges to lie at intensity inflection points
+* Can be found at the zero-crossings of the Laplacian:
+$\nabla^2 f(x,y)=\frac{\partial^2 f}{\partial x^2}+\frac{\partial^2 f}{\partial y^2}=0$
+* linear and shift-invariant operator $\to$ convolution
+* also isotropic operator
+
+**Discrete approximations of the Laplacian**
+@import "/src/laplacian.png" {height="50%" width="50%" title="laplacian" alt="04"}
+
+**Zero-crossings: implementation**
+* Sensitive to noise (2nd order derivatives)
+* It should be combined with smoothing, e.g. with a Gaussian
+$L\ast(G\ast f(x,y))=(L\ast G)\ast f(x,y)$
+* This $L\ast G$ is a “**Mexican hat**” filter used frequently
+* Also called Laplacian of Gaussian (LoG)
+* Also implemented as difference of Gaussians **DoG**
+@import "/src/mexicanhat.png" {height="30%" width="30%" title="mexicanhat" alt="04"}
+
+**Zero-crossings: example**
+@import "/src/zerocrossing.png" {height="50%" width="50%" title="zerocrossing" alt="04"}
+* One pixel-thick edges
+* Closed contours
+* Yet not very convincing results
+
+**The Canny edge detector**
+* A 1D signal processing approach 
+* Looking for “optimal” filters
+* Optimality criteria: 
+  * Good SNR
+    Strong response to edges and no response to noise
+  * Good localization 
+    edges should be detected at the right position
+  * Uniqueness
+    edges should be detected only once
+
+**Characterization of SNR**
+* Response of system $\mathbf{h}$ to signal deterministic signal model $m(x)$ step edge at the origin
+$\mathbf{h}[m(x)]=\int_{-W}^W h(x-\hat{x})m(\hat{x})d\hat{x}$
+* at the edge position
+$\mathbf{h}[m(0)]=\int_{-W}^W h(-\hat{x})m(\hat{x})d\hat{x}$
+@import "/src/SNR2.png" {height="30%" width="30%" title="SNR2" alt="04"}
+* Response to noise $n(x)$ noise is stochastic (Gaussian, white and uncorrelated)
+can be characterised by the expected value
+$\sqrt{\mathbb{E}[(\int_{-W}^W h(\hat{x})n(x-\hat{x})d\hat{x})^2]}|_{x=0}=\sigma\sqrt{\int_{-W}^Wh^2(\hat{x})d\hat{x}}$
+$SNR=\frac{\int_{-W}^W h(-\hat{x})m(\hat{x})d\hat{x}}{\sigma\sqrt{\int_{-W}^Wh^2(\hat{x})d\hat{x}}}$
+
+**Characterization of localization**
+* Edge location: maximum of the system response extremum of $\mathbf{h}(m(x) + n(x))$ at $x_0$
+again stochastic (depending on the noise)
+will deviate from the ideal edge position at 0
+* Quantification through expected value of the deviation from the real edge location
+$\sqrt{\mathbb{E}[x_0^2]}$
+* Localization measure
+$LOC=\frac{1}{\sqrt{\mathbb{E}[x_0^2]}}=\frac{|\int_{-W}^W h'(\hat{x})m'(-\hat{x})d\hat{x}|}{\sigma\sqrt{\int_{-W}^W[h'(\hat{x})]^2d\hat{x}}}$
+
+**The matched filter**
+* Optimal filter $\mathbf{h}(x)$ for which 
+$max(SNR\times LOC)$
+* This is given by $h(x)=\lambda m(x)\quad x\in[-W,W]$
+* Essentially identical with the signal to be detected.
+* For the edge model used: difference of boxes filter (DoB)
+@import "/src/canny.png" {height="50%" width="50%" title="canny" alt="04"}
+
+**Uniqueness**
+* Filtering the DoB generates many local maxima due to noise
+* Hinders unique detection
+* Remedy: minimize the number of maxima within the filter support
+* Caused by noise (stochastic)
+Characterized by the average distance between subsequent zero-crossings of the noise response$(f=\mathbf{h}'(n))$
+Rice theorem: 
+$x_{ave}=\pi\sqrt{\frac{-\Phi_{ff}(0)}{\Phi''_{ff}(0)}}$
+
+**1D optimal filter**
+* Average number of maxima within filter support
+$N_{max}=\frac{2W}{x_max}=\frac{W}{x_{ave}}$
+should be minimized.
+* Overall goal function is a linear combination of the two criteria
+$max(SNR\times LOC+c\frac{1}{N_{max}})$
+the solution depends on c, which is empirically selected
+@import "/src/canny1d.png" {height="50%" width="50%" title="canny1d" alt="04"}
+* Resembles the first derivative of the Gaussian
+@import "/src/canny1d2.png" {height="50%" width="50%" title="canny1d2" alt="04"}
+* 
+@import "/src/canny1d3.png" {height="50%" width="50%" title="canny1d3" alt="04"}
+
+**Canny filter in nD**
+* Canny filter is essentially 1D 
+* Extensions to higher dimensions requires assumptions: 
+  * Simplified edge model
+  * Intensity variation only orthogonal to the edge
+  * No intensity change along the edge
+* Combination of two filtering principles
+  * 1D Canny filter across the edge
+  * $(n-1)D$ smoothing filter along the edge
+  Gaussian smoothing is used commonly
+* The effective filter is a directional derivation of Gaussian
+
+**The 2D Canny filter**
+@import "/src/canny2d.png" {height="30%" width="30%" title="canny2d" alt="04"}
+
+**2D implementation on the discrete image raster**
+* Faithful implementation by selecting gradient direction: does not respect discretization
+* Estimation of directional derivatives instead considering neighbours on the image raster
+@import "/src/canny2d2.png" {height="10%" width="10%" title="canny2d2" alt="04"}
+* Start with 2D Gaussian smoothing $f=G\ast I$
+* Directional derivatives from discrete differences
+$f'_N=f(i,j+1)-f(i,j);f'_{NE}(i,j)=(f(i+1,j+1)-f(i,j))/\sqrt{2}$
+$f'_E=f(i+1,j)-f(i,j);f'_{SE}(i,j)=(f(i+1,j-1)-f(i,j))/\sqrt{2}$
+* Selecting the maximum as gradient approximation, edge direction
+
+**Canny 2D Results**
+**Post-processing steps to get one line thick edges**
+* Non-maximum suppression
+  * Compare derivative magnitude at the two neighbours along the selected direction
+  * Keeping only values which are not smaller than any of them
+* Hysteresis thresholding
+  * Using two threshold values $t_{low}$ and $t_{high}$
+  * Keep class 1 edge pixels for which $|f'(i,j)|\geq t_{high}$
+  * Discard class 2 edge pixels $|f'(i,j)|< t_{low}$
+  * For class 3 edge pixels $t_{high}>|f'(i,j)|\geq t_{low}$
+  keep them only if connected to class 1 pixels possibly through other class 3 pixels 
+@import "/src/canny2d3.png" {height="50%" width="50%" title="canny2d3" alt="04"}
+@import "/src/canny2d4.png" {height="50%" width="50%" title="canny2d4" alt="04"}
+
+**Remarks to Canny edge detection**
+* State-of-the-art non-learning-based edge detector
+* Very efficient implementation – no interpolation is needed as respecting the raster
+* Post-processing is a major contribution
+* It can be applied to any gradient-based edge detection
+* Fails where the simplified edge model is wrong
+  * Crossings and corners
+  * Gaps can be created
+  * Mainly due to the non-maximum suppression step
+* Hysteresis thresholding is effective in 2D where connectivity is easily defined. 
+
+**Last remark: Match filter idea**
+* This idea is very generic and can be used not only with edges but with any type of pattern
+* For example the match filter for a line detector would be
+@import "/src/matchfilter.png" {height="20%" width="20%" title="matchfilter" alt="04"}
+* This filter would need to be rotated to detect lines in different orientations. 
+
+**Uniqueness of a patch**
+* Consider the pixel pattern within the blue patch
+@import "/src/uniquepatch.png" {height="50%" width="50%" title="uniquepatch" alt="04"}
+* Think of the wedge as being darker than the background, i.e. not as drawn in the figure…
+* How do the patterns change upon a shift?
+@import "/src/uniquepatch2.png" {height="50%" width="50%" title="uniquepatch2" alt="04"}
+* Consider shifting the patch or ‘window’ W by $(u,v)$
+* How do the pixels in W change? 
+* Compare each pixel before and after by summing up the squared differences (SSD)
+* High change means distinct patch from its surrounding
+* Low change means not distinct at all
+* The SSD distance is defined as
+$E(u,v)=\sum_{(u,v)\in W}[I(x+u,y+v)-I(x,y)]^2$
+Taylor Series expansion of this term:
+$I(x+u,y+v)=I(x,y)+\frac{\partial I}{\partial x}u+\frac{\partial I}{\partial y}v$ + higher order terms
+If the motion $(u,v)$ is small, then 1^st^ order appr. is good
+$I(x+u,y+v)\approx I(x,y)+\frac{\partial I}{\partial x}u+\frac{\partial I}{\partial y}v\approx I(x,y)+[I_x \:I_y]\begin{bmatrix}u\\v\end{bmatrix}$
+Plugging this into the formula at the top…
+* Then using the notation $I_x=\frac{\partial I}{\partial x}$
+$\begin{aligned}
+E(u,v)&=\sum_{(u,v)\in W}[I(x+u,y+v)-I(x,y)]^2\\
+&\approx \sum_{(u,v)\in W}[I(x,y)+[I_x \:I_y]\begin{bmatrix}u\\v\end{bmatrix}-I(x,y)]^2\\
+&\approx \sum_{(u,v)\in W}[[I_x \:I_y]\begin{bmatrix}u\\v\end{bmatrix}]^2
+\end{aligned}$
+* This can be rewritten further as
+$E(u,v)=\sum_{(u,v)\in W}[u\:v]\begin{bmatrix}I_x^2 & I_xI_y\\I_xI_y&I_y^2\end{bmatrix}\begin{bmatrix}u\\v\end{bmatrix}$
+$E(u,v)=[u\:v]\sum_{(u,v)\in W}\begin{bmatrix}I_x^2 & I_xI_y\\I_xI_y&I_y^2\end{bmatrix}\begin{bmatrix}u\\v\end{bmatrix}$
+$E(u,v)=[u\:v]H\begin{bmatrix}u\\v\end{bmatrix}$ where H is structure tensor
+* Which directions $(u,v)$ will result in the largest and smallest E changes? 
+* $H=\sum_{(u,v)\in W}\begin{bmatrix}I_x^2 & I_xI_y\\I_xI_y&I_y^2\end{bmatrix}$
+* Eigenvalues and eigenvectors of H
+  * Define shifts with the smallest and largest change in E value
+  * $x_+$ = direction of largest increase in E
+  * $λ_+$ = amount of increase in direction $x_+$
+  * $x_-$ = direction of smallest increase in E
+  * $λ_-$ = amount of increase in direction $x_-$
+* We would like $E(u,v)$ to be large for small shifts in ALL directions
+This means the minimum $λ_-$ of H should be large
+@import "/src/uniquepatch3.png" {height="50%" width="50%" title="uniquepatch3" alt="04"}
+@import "/src/uniquepatch4.png" {height="50%" width="50%" title="uniquepatch4" alt="04"}
+
+**Relation to interest points**
+* Corners are the most prominent example of interest points
+* They can be well localized in different views of a scene – a corner is a corner, it has to be visible though
+* Blobs are another as we will see
+* Very similar to corners, a blob is a region with intensity changes in multiple directions, similar to corners
+
+**Harris corner detector**
+* Goal: one approach that distinguishes 
+  * Homogeneous areas
+  * Edges
+  * Corners
+  @import "/src/harris.png" {height="50%" width="50%" title="harris" alt="04"}
+* Key: use the same idea with eigenvalues of the structure tensor, look for intensity variations in different directions
+  * Small in all directions
+  * Large in one direction, small in the other
+  * Large in all directions
+* The classification can be made as
+  * Two small eigenvalues – homogeneous area
+  * One large and one small eigenvalue – edge
+  * Two large eigenvalues – corner
+* We can actually look at two maps to decide
+* Two eigenvalues would create two maps that we would need to combine
+* To create one score we can look at the determinant of the structure tensor: 
+product of the eigenvalues
+* That does not work very well. 
+* One very large eigenvalue can still trigger a corner response
+* Refined strategy: Use iso-lines for $Determinant-k(Trace)^2$.
+@import "/src/harris2.png" {height="30%" width="30%" title="harris2" alt="04"}
+
+**Harris corner detector’s response**
+@import "/src/harris3.png" {height="50%" width="50%" title="harris3" alt="04"}
+
+**Are corners stable under viewpoint and illumination changes?**
+
+**Blob**
+* A blob is an area of an image where some properties are roughly costant and differ from their surrounding. 
+* Similar to corners – it is different than its neighborhood in all directions. 
+* Its definition is less formal
+* Property can change based on the aspect you look at: 
+  * Gray level
+  * A color channel
+  * Gradient magnitude
+  * …
+
+**Blob detection through Laplacian of Gaussian (LoG)**
+* We have already seen Laplacian operator – 2nd order derivatives. 
+* Gaussian smoothing first is necessary leading to the Laplacian of Gaussian (LoG) or the Mexican hat filter.
+
+**Dependence of the smoothing amount**
+@import "/src/blob.png" {height="80%" width="80%" title="blob" alt="04"}
+
+**Part II: Extracting descriptors around interest points**
+**Need for a descriptor**
+* A feature should capture something **discriminative** about a well **localizable** patch of pattern
+* There are many corners or blobs coming out of our detectors but they still cannot be told apart
+* We need to describe their surrounding patch in a way that we can discriminate betwee them, i.e. we need to build a feature vector for the patch, a so-called **DESCRIPTOR**
+* During matching or recognition, the descriptors will be compared
+
+**Two components of a descriptor**
+This will be extracted for each point of interest
+1. Define an area – local patch – in  the image around each interest point. 
+2. Extract features from the local patch to represent each interest point with a vector of numbers 
+
+**Additional requirements on the descriptors**
+* **Invariance** under geometric / photometric changes – if impossible then insensitivity
+* Small local patches – can consider how they deform with geometric changes
+* Intensity-based descriptors that do not change with illumination changes
+* Invariance theory is rich and fun
+
+**Example I: Euclidean invariant features**(Schmid and Mohr ‘97)
+* Harris corner detector to identify corners as interest points
+* Extract circular patches around each interest point. 
+* For each interest point circular areas of different radii are chosen – to account for scale * changes to some degree
+* Extract invariant features under planar rotation from each area to form the final descriptors
+* Very successful model
+@import "/src/euclideanfeature.png" {height="40%" width="40%" title="euclideanfeature" alt="04"}
+* Rotation invariant gradient magnitude $G_xG_x+G_yG_y$
+where $G_x$ and $G_y$ represent horizontal and vertical derivatives of intensity weighted by a Gaussian profile in the patch (“Gaussian derivatives”)
+* Rotation invariant 2nd derivatives $G_{xx}+G_{yy}$
+where $G_{xx}$ and $G_{yy}$ represent 2nd order Gaussian derivatives
+
+**Invariance properties**
+* Areas are rotationally invariant because they are circular
+* Taking circles with multiple radii at each point achieve some level of robustness to scale changes – zoom
+* Gradient magnitude is rotationally invariant $\to$ Can you show this? 
+* 2nd order derivatives is also rotationally invariant $\to$ Can you show this? 
+* Are the features invariant to scale changes? 
+
+**Example 2: SIFT**
+* Scale-invariant Feature Transform
+* Developed by David Lowe 
+* Carefully crafted interet point detection and descriptor based on intensity gradients
+* Invariance to similarity transformations
+
+**SIFT: Blob detection**
+* Interest points and patches around interest points are jointly determined through blob detection at multiple scales
+* Determine local extrema of the LoG at each scale
+@import "/src/sift.png" {height="70%" width="70%" title="sift" alt="04"}
+
+**SIFT: Interet points and local patches**
+@import "/src/sift2.png" {height="50%" width="50%" title="sift2" alt="04"}
+* Same patch can be rotated in any direction
+* To gain invariance to such rotations SIFT implements **dominant orientation selection**
+  * Compute image gradients
+  * Build orientation histograms
+  * Find maximum
+@import "/src/sift3.png" {height="50%" width="50%" title="sift3" alt="04"}
+* Image gradients are sampled over a grid
+* Create array of orientation histograms within blocks
+* 8 orientations $\times$ 4x4 histogram array = 128 dimensions
+* Apply weighting with a Gaussian located at the patch center
+* Normalized to unit vector
+@import "/src/sift4.png" {height="50%" width="50%" title="sift4" alt="04"}
+
+**SIFT is carefully crafted why 4x4x8?**
+@import "/src/sift5.png" {height="50%" width="50%" title="sift5" alt="04"}
+**Sensitivity to affine changes are good**
+@import "/src/sift6.png" {height="50%" width="50%" title="sift6" alt="04"}
+
+**Invariance properties**
+* Local patches are rotationally invariant because they are circular
+* Scale invariance in patch selection
+* Dominant direction selection leads to rotation invariance
+* Gradient orientation histograms are invariant to scale changes
+* Huge improvements over SIFT in computational efficiency, accuracy and robustness to different transformations: 
+SURF: Speeded up robust features 
+Bay, Ess, Tuytelaars, Van Gool
+
+## Principal Component Analysis
+**Remember the Fourier transform?**
+* It converted an image into another domain – frequency domain
+* This can be applied to the entire image but also to parts of it
+* New representation of the image or its parts
+* Much like extracting features!
+* Fourier transform is an all applicable unitary transform and it may not extract best possible features. 
+* Can we have transformations specific to certain image types? 
+
+**Principal component analysis: Motivation**
+* Image independent transforms are suboptimal for extracting “useful” descriptors or representations
+* Image dependent transformations may yield more useful representations of images
+* PCA also known as Karhunen-Loève Transform (KLT)
+* Extracts statistics from images for a **customized** orthogonal basis set with **uncorrelated weights**
+* Customization refers to having a basis set specific to a given set of images instead of generic basis such as those in FT
+$e^{i2\pi(ux+vy)}$
+
+**PCA: Central idea**
+* Reduce the dimensionality of data consisting of many interrelated variables, while retaining as much as possible of the variation
+* Achieved by transforming to new, **uncorrelated** variables, the **principal components**, which are ordered so that the first few retain most of the variation
+* Representation of the image under the new variables will be useful as features for recognition, classification, inspection,...
+
+**Correlated variables**
+* Observations with two highly-correlated variables, e.g. 
+  * grey-level at neighbouring pixels 
+  * Length & weight of growing children
+* Highly correlated values: $x_1$ has info on $x_2$
+* We can represent both variables with only 1
+* This new variable would be a more compact representation that has information on both of the previous ones.
+@import "/src/pca.png" {height="30%" width="30%" title="pca" alt="04"}
+
+**Basic idea in PCA: Decorrelation through rotation**
+* Using correlation, rotate coordinates so to maximise variation in the 1^st^ component and minimise in the 2^nd^ component.
+* Then you can potentially drop the second component now
+* This also applies to higher dimensions
+* The principle behind is the same as **unitary transforms: rotation in high-dimensional spaces**
+@import "/src/pca2.png" {height="40%" width="40%" title="pca2" alt="04"}
+
+**Decorrelation through rotation**
+We will work **around the mean** of the data points
+* Thus, we are applying a rotation about the mean of the samples, or mean of the distribution if you like
+* This is in essence fitting an ellipse to the data
+* Analogy extends to hyperellipsoids in higher dimensions, where visual inspection is not possible
+@import "/src/pca3.png" {height="30%" width="30%" title="pca3" alt="04"}
+
+**Rotation does not change sum of variances**
+* Sum of variances does not change with rotations
+$\sum_{i=1}^d\sigma_i^2=\sum_{i=1}^d\tilde{\sigma}_i^2$
+with $\sigma_i^2$ variance in $x_i$ direction and $\tilde{\sigma}_i^2$ variance in $z_i$ direction
+* Stems from invariance of center of gravity and distance under rotation transformation
+* Parseval’s equation
+* **Redistribution of energy to dimensions**
+* **We would like as much variance in as few coordinates**
+
+**PCA: mathematical treatment for high dimensions**
+* In high dimensional spaces an optimal rotation is no longer clear upon visual inspection. We need some abstraction
+* The required statistics is the **covariance matrix**
+there is an underlying Gaussianity assumption
+* Intuition: fit hyperellipsoid to the cluster of data
+subsequent principal components (PCs) correspond to axes from the longest to the shortest
+
+**PCA: method**
+* Suppose 𝑥 is a vector of 𝑑 random variables
+if x is an image then d can be the number of pixels
+* **First step**: look for a linear combination $c_1^Tx$ which has maximum variance – same as fitting a line in $\mathbb{R}^d$
+* **Second step**: look for a linear combination $c_2^Tx$ with $c_1$ and $c_2$ being orthogonal ($c_1^Tc_2=0$) and with maximum variance 
+* **Third step**: repeat finding a $c_3$ that is orthogonal to the previous two directions
+* …
+
+**Algorithm: Find PCA basis formally**
+* Assume all x samples are de-meaned $\sum_{n=1}^Nx_n=0$
+$\begin{aligned}
+c_1&=argmax_{c_1}\sum_{n=1}^N c_1^Tx_n(c_1^Tx_n)^T\:s.t.\: c_1^Tc_1=1\\
+&=argmax_{c_1}\sum_{n=1}^N c_1^Tx_nx_n^Tc_1\\
+&=argmax_{c_1}c_1^T\sum_{n=1}^N x_nx_n^Tc_1\\
+&=argmax_{c_1}c_1^TCc_1 \:s.t.\: c_1^Tc_1=1\\
+\end{aligned}$
+* Using Lagrange multipliers we maximise
+$c_1=argmax_{c_1}c_1^TCc_1-\lambda(c_1^Tc_1-1)$
+* Differentiation and setting to 0 yields
+$Cc_1-\lambda c_1=0 \to (c-\lambda I)c_1=0$
+* Thus $\lambda$ must be an eigenvalue of C and $c_1$ the corresponding eigenvector!
+* Which of the d eigenvectors?
+$c_1^TCc_1=c_1^T\lambda c_1=\lambda c_1^T c_1=\lambda$
+Since $\lambda$ should be as large as possible then it is the largest eigenvalue and $c_1$ is the corresponding eigenvector
+* $\lambda$ corresponds to the variance in the $c_1$ direction
+
+**How about the 2nd PC?**
+Maximise $c_2^TCc_2$ while being orthogonal to $c_1$
+Let’s Lagrange multipliers again
+$argmax_{c_2}c_2^TCc_2-\lambda(c_2^Tc_2-1)-\eta c_2^Tc_1$
+Differentiation gives
+$Cc_2-\lambda c_2-\eta c_1=0$
+$c_1^T(Cc_2-\lambda c_2-\eta c_1)=0\Rightarrow \eta=0$
+$Cc_2-\lambda c_2=0$
+So $c_2$ should be an eigenvector and correspond to the 2nd largest eigenvalue based on the same argument for $c_1$.
+
+**How about the kth PC?**
+* The kth PC is the eigenvector corresponding to the kth largest eigenvalue
+
+**Are the new variables decorrelated?**
+* In the 2D case, through rotation we could see decorrelation 
+* In higher dimensions does this hold? 
+* Covariance is estimated through
+$\sum_{n=1}^N z_iz_j^T=\sum_{n=1}^N c_i^Tx_n(c_j^Tx_n)^T$
+$c_i^TCc_j=c_i^T\lambda_jc_j=\lambda_i c_i^Tc_j=0$
+* Hence covariance and therefore correlation is 0 between the variables. They are decorrelated
+
+**PCA: interpretation**
+* C is the sample covariance matrix
+* If number of independent samples is higher than number of dimensions, i.e. $N>d$, then C will be full rank positive semi-definite matrix and admit d real non-negative eigenvalues and corresponding eigenvectors, i.e. PCs
+* We would use this notation to represent it all
+$C=U\Lambda U^T$ , where $U$ is matrix of eigenvectors, and $\Lambda$ is diagonal matrix of eigenvalues
+* It is still a rotation in high-dimension because $U^TU=I$
+
+**Some notes on PCA**
+* PCA collects maximum variance in subsequent uncorrelated components
+* Any sample can be represented using PCs and corresponding variables, and vice-versa
+$z=U^Tx$ and $x=Uz$
+* If number of samples is less than number of dimensions Singular Value Decomposition can be used to identify principal components
+
+**Representation with fewer PCs**
+* Strongly correlated data will yield first PCs to contain most of the variance in the data. Representing the data only with the first PCs will cause minimal information loss
+@import "/src/pca4.png" {height="50%" width="50%" title="pca4" alt="04"}
+
+**One of the first examples in computer vision**
+Journal of Cognitive Neuroscience 1991
+* Very primitive retrospectively but has all the ingredients
+* Set of images – training set
+  * They used such images to compute the Principal Components
+  * These images are called training images
+  * The entire set is called the training set. 
+  * They only used 16 images
+  * 128x128
+  * SVD-based computation to get the PCs
+* Reconstruction works quite well with only 7 PCs
+$x\in\mathbb{R}^{128\times 128}$ while $z\in\mathbb{R}^7$
+* Works well only for relevant face images
+* Correcting partial occlusions
+Through projecting the image onto the principal components and reconstructing back
+First, $z=U^Tx$ then $\hat{x}=Uz$
 
